@@ -6,11 +6,11 @@
 #include "jit_helper/jit_helper.h"
 
 extern "C" void init_exploit_framework();
-extern "C" void show_load_toast();   // del archivo visual_feedback
+extern "C" void show_load_toast();
 
 __attribute__((constructor))
 static void init_framework() {
-    show_load_toast();   // ← Toast inmediato para confirmar carga
+    show_load_toast();   // ← Toast visible para confirmar que el dylib se cargó
 
     utils::init_logging();
     utils::log_to_file("🚀 enhanced-ios-hacker.dylib cargado en iOS 26 jailed");
@@ -21,5 +21,5 @@ static void init_framework() {
     init_exploit_framework();
     core_server::start_tcp_server();
 
-    utils::log_to_file("✅ Framework híbrido listo - Modo principal: ESign (JIT-less)");
+    utils::log_to_file("✅ Framework híbrido listo - ESign (JIT-less)");
 }
