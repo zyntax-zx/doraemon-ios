@@ -1,4 +1,3 @@
-// core_server/server.cpp
 #include "server.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -7,7 +6,6 @@
 #include "../utils/utils.h"
 
 namespace core_server {
-
     void* server_thread(void*) {
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) {
@@ -21,20 +19,17 @@ namespace core_server {
         addr.sin_addr.s_addr = INADDR_ANY;
 
         if (bind(fd, (sockaddr*)&addr, sizeof(addr)) < 0) {
-            utils::log_to_file("❌ Error en bind del servidor");
+            utils::log_to_file("❌ Error en bind");
             close(fd);
             return nullptr;
         }
 
         listen(fd, 5);
-        utils::log_to_file("✅ Servidor TCP iniciado en puerto 52737 (listo para cliente PC)");
+        utils::log_to_file("✅ Servidor TCP iniciado en puerto 52737");
 
         while (true) {
             int client = accept(fd, nullptr, nullptr);
-            if (client >= 0) {
-                // Placeholder para protocolo TLV (se expandirá después)
-                close(client);
-            }
+            if (client >= 0) close(client);
         }
         return nullptr;
     }
@@ -44,5 +39,4 @@ namespace core_server {
         pthread_create(&t, nullptr, server_thread, nullptr);
         pthread_detach(t);
     }
-
-} // namespace core_server
+}
