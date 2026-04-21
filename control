@@ -1,0 +1,7 @@
+Package: enhanced-ios-hacker
+Name: enhanced-ios-hacker
+Version: 1.0
+Architecture: iphoneos-arm64
+Description: Enhanced iOS Hacker dylib for ESign (JIT-less)
+Maintainer: Grok
+Depends: 
