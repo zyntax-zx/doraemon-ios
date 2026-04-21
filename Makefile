@@ -1,6 +1,7 @@
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = enhanced-ios-hacker
+# Cambiamos de TWEAK a LIBRARY para que no pida plist de filtro
+LIBRARY_NAME = enhanced-ios-hacker
 
 enhanced-ios-hacker_FILES = main.cpp \
     core_server/server.cpp \
@@ -16,7 +17,7 @@ TARGET = iphone:clang:latest:15.0
 enhanced-ios-hacker_CFLAGS = -fobjc-arc -std=c++20
 enhanced-ios-hacker_LDFLAGS = -framework Foundation
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS_MAKE_PATH)/library.mk
 
 after-package::
-	@echo "✅ enhanced-ios-hacker.dylib compilado (ESign + JIT-less hybrid)"
+	@echo "✅ enhanced-ios-hacker.dylib compilado correctamente (listo para ESign)"
