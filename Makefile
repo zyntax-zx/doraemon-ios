@@ -9,7 +9,8 @@ enhanced-ios-hacker_FILES = main.cpp \
     memory_engine/memory_engine.cpp \
     exploit_framework/exploit_framework.mm \
     utils/utils.cpp \
-    jit_helper/jit_helper.mm
+    jit_helper/jit_helper.mm \
+    visual_feedback/visual_feedback.mm
 
 ARCHS = arm64 arm64e
 TARGET = iphone:clang:latest:15.0
