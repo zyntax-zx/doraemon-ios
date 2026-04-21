@@ -1,0 +1,29 @@
+name: Build enhanced-ios-hacker.dylib
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Theos
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+
+      - name: Build dylib
+        working-directory: ./enhanced-ios-hacker/enhanced-ios-hacker
+        run: make package
+
+      - name: Upload dylib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: enhanced-ios-hacker-dylib
+          path: enhanced-ios-hacker/enhanced-ios-hacker/theos/obj/enhanced-ios-hacker.dylib
