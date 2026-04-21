@@ -7,7 +7,8 @@ enhanced-ios-hacker_FILES = main.cpp \
     hook_engine/hook_engine.cpp \
     memory_engine/memory_engine.cpp \
     exploit_framework/exploit_framework.cpp \
-    utils/utils.cpp
+    utils/utils.cpp \
+    jit_helper/jit_helper.mm
 
 ARCHS = arm64 arm64e
 TARGET = iphone:clang:latest:15.0
@@ -18,4 +19,4 @@ enhanced-ios-hacker_LDFLAGS = -framework Foundation
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 after-package::
-	@echo "✅ enhanced-ios-hacker.dylib compilado correctamente"
+	@echo "✅ enhanced-ios-hacker.dylib compilado (ESign + JIT-less hybrid)"
