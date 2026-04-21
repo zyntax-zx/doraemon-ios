@@ -10,20 +10,21 @@ namespace utils {
     static FILE* log_file = nullptr;
 
     void init_logging() {
-        // Obtener Bundle ID del app actual
-        NSString* bundleID = [[NSBundle mainBundle] bundleIdentifier];
-        utils::log_to_file("[BUNDLE] App detectado: %s", [bundleID UTF8String]);
-
-        // Obtener carpeta Documents de forma más fiable
+        // Intentamos obtener la carpeta Documents de forma oficial
         NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString* documentsPath = [paths firstObject];
         NSString* logPath = [documentsPath stringByAppendingPathComponent:@"ENHANCED_LOGS.TXT"];
 
         log_file = fopen([logPath UTF8String], "a");
+
         if (log_file) {
-            utils::log_to_file("✅ Log iniciado en: %s", [logPath UTF8String]);
+            // Log inicial con información útil
+            NSString* bundleID = [[NSBundle mainBundle] bundleIdentifier];
+            log_to_file("🚀 enhanced-ios-hacker.dylib cargado");
+            log_to_file("[BUNDLE] App actual: %s", [bundleID UTF8String]);
+            log_to_file("[LOG] Archivo creado en: %s", [logPath UTF8String]);
         } else {
-            // fallback
+            // Fallback si falla
             char path[1024];
             uint32_t size = sizeof(path);
             _NSGetExecutablePath(path, &size);
