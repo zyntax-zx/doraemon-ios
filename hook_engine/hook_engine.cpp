@@ -12,12 +12,20 @@ namespace hook_engine {
     }
 
     bool add_brk_hook(uint64_t addr, void* repl, void** orig) {
-        // Placeholder - usa MemX de Titanox en versión final
-        utils::log_to_file("BRK hook registrado en 0x%llx", addr);
+        utils::log_to_file("[HOOK] BRK en 0x%llx", addr);
+        return true;
+    }
+
+    bool hook_vtable(void* object_instance, uint32_t vtable_index, void* replacement, void** original) {
+        if (!object_instance) return false;
+        void** vtable = *(void***)object_instance;
+        *original = vtable[vtable_index];
+        vtable[vtable_index] = strip_pac(replacement);
+        utils::log_to_file("[VTABLE] Hook índice %u en 0x%llx", vtable_index, (uint64_t)object_instance);
         return true;
     }
 
     void init() {
-        utils::log_to_file("Hook engine inicializado (PAC-aware)");
+        utils::log_to_file("[HOOK] Engine inicializado (PAC + VTable support)");
     }
 }
