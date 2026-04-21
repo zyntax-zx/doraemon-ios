@@ -6,7 +6,7 @@ enhanced-ios-hacker_FILES = main.cpp \
     core_server/server.cpp \
     hook_engine/hook_engine.cpp \
     memory_engine/memory_engine.cpp \
-    exploit_framework/exploit_framework.cpp \
+    exploit_framework/exploit_framework.mm \
     utils/utils.cpp \
     jit_helper/jit_helper.mm
 
