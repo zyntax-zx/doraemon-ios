@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <mach-o/dyld.h>
 #include <string.h>
 #include <vector>
 
@@ -119,6 +120,34 @@ static void handle_client(int fd) {
                 TLVHeader resp = { CMD_SET_MODE, 1 };
                 send(fd, &resp, sizeof(resp), 0);
                 send(fd, &mode, 1, 0);
+                break;
+            }
+            case CMD_ENUM_MODULES: {
+                uint32_t count = _dyld_image_count();
+                // Enviar solo los primeros 200 módulos para no ahogar el buffer, el juego suele estar en el 0
+                uint32_t send_count = MIN(count, 200);
+                uint32_t entry_size = 8 + 8 + 128; // base(8) + slide(8) + name(128)
+                uint32_t resp_len = 4 + (send_count * entry_size);
+                
+                TLVHeader resp = { CMD_ENUM_MODULES, resp_len };
+                send(fd, &resp, sizeof(resp), 0);
+                send(fd, &send_count, 4, 0);
+                
+                for (uint32_t i = 0; i < send_count; i++) {
+                    uint64_t base_addr = (uint64_t)_dyld_get_image_header(i);
+                    uint64_t slide = (uint64_t)_dyld_get_image_vmaddr_slide(i);
+                    const char *name = _dyld_get_image_name(i);
+                    char name_buf[128] = {0};
+                    if (name) {
+                        // Extraer solo el nombre base del path completo
+                        const char *slash = strrchr(name, '/');
+                        const char *basename = slash ? slash + 1 : name;
+                        strncpy(name_buf, basename, sizeof(name_buf) - 1);
+                    }
+                    send(fd, &base_addr, 8, 0);
+                    send(fd, &slide, 8, 0);
+                    send(fd, name_buf, 128, 0);
+                }
                 break;
             }
             case CMD_PONG: {

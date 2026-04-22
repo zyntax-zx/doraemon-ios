@@ -132,6 +132,29 @@ class NexusClient:
         else:
             print("[-] Error en la comunicación.")
 
+    def enum_modules(self, filter_name=None):
+        print("[*] Solicitando lista de módulos...")
+        self._send_cmd(CMD_ENUM_MODULES)
+        cmd, resp_payload = self._recv_resp()
+        if cmd == CMD_ENUM_MODULES and len(resp_payload) >= 4:
+            count = struct.unpack('<I', resp_payload[:4])[0]
+            print(f"[+] {count} módulos recibidos.")
+            offset = 4
+            entry_size = 144 # 8 + 8 + 128
+            for i in range(count):
+                if offset + entry_size > len(resp_payload):
+                    break
+                base_addr, slide = struct.unpack('<QQ', resp_payload[offset:offset+16])
+                name_bytes = resp_payload[offset+16:offset+144]
+                name = name_bytes.split(b'\x00')[0].decode('utf-8', errors='ignore')
+                
+                if not filter_name or filter_name.lower() in name.lower():
+                    print(f"  [{i:03d}] 0x{base_addr:016x} (Slide: 0x{slide:016x}) | {name}")
+                
+                offset += entry_size
+        else:
+            print("[-] Error obteniendo módulos.")
+
 def interactive_shell(client):
     while True:
         try:
@@ -139,13 +162,20 @@ def interactive_shell(client):
             if not cmd or cmd == 'help':
                 print("Comandos disponibles:")
                 print("  ping       - Verificar conexión")
-                print("  snap       - Tomar snapshot (valores 1-200)")
-                print("  diff <val> - Filtrar snapshot por nuevo valor (ej: diff 160)")
-                print("  write <addr> <val> - Escribir un valor entero en una dirección")
+                print("  mod [name] - Listar módulos (ej: mod, mod wuthering)")
+                print("  snap <val> - Tomar snapshot (ej: snap 1090)")
+                print("  diff <val> - Filtrar snapshot (ej: diff 875)")
+                print("  write <addr> <val> - Escribir un valor (ej: write 0x123 99)")
                 print("  mode <0|1> - 0=RESEARCH, 1=EXPLOIT")
                 print("  exit       - Salir")
             elif cmd == 'ping':
                 client.ping()
+            elif cmd.startswith('mod'):
+                parts = cmd.split(' ')
+                if len(parts) > 1:
+                    client.enum_modules(parts[1])
+                else:
+                    client.enum_modules()
             elif cmd.startswith('snap'):
                 parts = cmd.split(' ')
                 if len(parts) == 1:
