@@ -2,6 +2,9 @@
 #import <Foundation/Foundation.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/param.h>
 #include <mach/mach.h>
 
 // Versión del framework
