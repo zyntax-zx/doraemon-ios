@@ -1,7 +1,8 @@
-Package: enhanced-ios-hacker
-Name: enhanced-ios-hacker
-Version: 1.0
-Architecture: iphoneos-arm64
-Description: Enhanced iOS Hacker dylib for ESign (JIT-less)
-Maintainer: Grok
-Depends: 
+Package: com.nexus.enhanced
+Name: NEXUS Enhanced Hacker
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Advanced iOS Research Framework for Wuthering Waves (UE4)
+Maintainer: Research Team
+Section: Tweaks
+Depends: mobilesubstrate
