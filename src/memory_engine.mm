@@ -89,3 +89,55 @@ std::vector<uintptr_t> mem_scan_diff(int new_min, int new_max) {
     nexus_log("MEM", "Diff: %zu candidatos.", results.size());
     return results;
 }
+
+// AOB Scanner para encontrar patrones como "48 8B 05 ?? ?? ?? ??"
+std::vector<uintptr_t> mem_aob_scan(const char *pattern) {
+    std::vector<int> pat;
+    const char *p = pattern;
+    while (*p) {
+        if (*p == ' ') p++;
+        else if (*p == '?') { pat.push_back(-1); p++; if(*p=='?') p++; }
+        else { pat.push_back(strtol(p, nullptr, 16)); p+=2; }
+    }
+    
+    std::vector<uintptr_t> results;
+    if (pat.empty()) return results;
+
+    vm_address_t addr = 0;
+    vm_size_t size = 0;
+    while (true) {
+        vm_region_basic_info_data_64_t info;
+        mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+        mach_port_t obj = MACH_PORT_NULL;
+        kern_return_t kr = vm_region_64(mach_task_self(), &addr, &size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &count, &obj);
+        if (kr != KERN_SUCCESS) break;
+
+        // Buscamos código ejecutable (r-x) para funciones y GWorld pointers
+        if ((info.protection & VM_PROT_READ) && (info.protection & VM_PROT_EXECUTE)) {
+            // Leer en bloques seguros de 1MB con superposición
+            const size_t BLOCK_SIZE = 1024 * 1024;
+            uint8_t *buf = (uint8_t*)malloc(BLOCK_SIZE);
+            if (buf) {
+                for (vm_address_t block = addr; block < addr + size; block += BLOCK_SIZE - pat.size()) {
+                    vm_size_t to_read = MIN((vm_size_t)BLOCK_SIZE, (addr + size) - block);
+                    vm_size_t actual = 0;
+                    if (vm_read_overwrite(mach_task_self(), block, to_read, (vm_address_t)buf, &actual) == KERN_SUCCESS) {
+                        for (size_t i = 0; i <= actual - pat.size(); i++) {
+                            bool match = true;
+                            for (size_t j = 0; j < pat.size(); j++) {
+                                if (pat[j] != -1 && buf[i+j] != pat[j]) {
+                                    match = false; break;
+                                }
+                            }
+                            if (match) results.push_back(block + i);
+                        }
+                    }
+                }
+                free(buf);
+            }
+        }
+        addr += size;
+    }
+    nexus_log("MEM", "AOB Scan completado. %zu coincidencias.", results.size());
+    return results;
+}

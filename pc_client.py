@@ -15,6 +15,7 @@ CMD_HOOK_SYMBOL    = 0x06
 CMD_NOP_REGION     = 0x07
 CMD_SET_MODE       = 0x08
 CMD_BAN_SIM        = 0x09
+CMD_AOB_SCAN       = 0x0A
 CMD_PONG           = 0xFF
 
 class NexusClient:
@@ -177,6 +178,27 @@ class NexusClient:
         print(f"[+] Dirección final resuelta: 0x{final_addr:016x}")
         return final_addr
 
+    def aob_scan(self, pattern):
+        print(f"[*] Escaneando AOB para: '{pattern}' ...")
+        payload = pattern.encode('utf-8')
+        self._send_cmd(CMD_AOB_SCAN, payload)
+        
+        cmd, resp_payload = self._recv_resp()
+        if cmd == CMD_AOB_SCAN and len(resp_payload) >= 4:
+            count = struct.unpack('<I', resp_payload[:4])[0]
+            print(f"[+] AOB Scan completado: {count} coincidencias.")
+            if count > 0 and count <= 100:
+                ptr_data = resp_payload[4:]
+                num_ptrs = len(ptr_data) // 8
+                if num_ptrs > 0:
+                    ptrs = struct.unpack('<' + 'Q'*num_ptrs, ptr_data)
+                    for i, p in enumerate(ptrs):
+                        print(f"    [{i+1}] 0x{p:016x}")
+            return count
+        else:
+            print("[-] Error en AOB Scan.")
+            return -1
+
 def interactive_shell(client):
     while True:
         try:
@@ -186,6 +208,7 @@ def interactive_shell(client):
                 print("  ping       - Verificar conexión")
                 print("  mod [name] - Listar módulos (ej: mod, mod wuthering)")
                 print("  readptr <addr> - Leer un puntero de 64 bits (ej: readptr 0x10038c000)")
+                print("  aob <pattern> - Buscar AOB (ej: aob 48 8B 05 ? ? ? ? 48 85 C0)")
                 print("  snap <val> - Tomar snapshot (ej: snap 1090)")
                 print("  diff <val> - Filtrar snapshot (ej: diff 875)")
                 print("  write <addr> <val> - Escribir un valor (ej: write 0x123 99)")
@@ -206,6 +229,9 @@ def interactive_shell(client):
                     print(f"[+] Puntero en 0x{addr:016x} -> 0x{val:016x}")
                 except Exception as e:
                     print("Uso: readptr <hex_addr> (Error:", e, ")")
+            elif cmd.startswith('aob '):
+                pattern = cmd[4:].strip().upper()
+                client.aob_scan(pattern)
             elif cmd.startswith('snap'):
                 parts = cmd.split(' ')
                 if len(parts) == 1:

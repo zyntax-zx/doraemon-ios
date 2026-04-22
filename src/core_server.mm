@@ -19,6 +19,7 @@
 #define CMD_NOP_REGION     0x07
 #define CMD_SET_MODE       0x08
 #define CMD_BAN_SIM        0x09
+#define CMD_AOB_SCAN       0x0A
 #define CMD_PONG           0xFF
 
 #pragma pack(push,1)
@@ -147,6 +148,28 @@ static void handle_client(int fd) {
                     send(fd, &base_addr, 8, 0);
                     send(fd, &slide, 8, 0);
                     send(fd, name_buf, 128, 0);
+                }
+                break;
+            }
+            case CMD_AOB_SCAN: {
+                if (hdr.len == 0 || hdr.len > sizeof(payload) - 1) break;
+                char pattern[1024] = {0};
+                memcpy(pattern, payload, hdr.len);
+                pattern[hdr.len] = '\0';
+                
+                extern std::vector<uintptr_t> mem_aob_scan(const char*);
+                std::vector<uintptr_t> results = mem_aob_scan(pattern);
+                
+                uint32_t count = (uint32_t)results.size();
+                nexus_log("SERVER", "AOB_SCAN para '%s': %u encontrados", pattern, count);
+                
+                uint32_t max_send = MIN(count, 100);
+                uint32_t resp_len = 4 + (max_send * sizeof(uintptr_t));
+                TLVHeader resp = { CMD_AOB_SCAN, resp_len };
+                send(fd, &resp, sizeof(resp), 0);
+                send(fd, &count, 4, 0); 
+                if (max_send > 0) {
+                    send(fd, results.data(), max_send * sizeof(uintptr_t), 0);
                 }
                 break;
             }
