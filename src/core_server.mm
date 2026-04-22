@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
+#include <vector>
 
 // Protocolo TLV simple:
 // [CMD:4 bytes][LEN:4 bytes][DATA:LEN bytes]
