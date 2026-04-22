@@ -16,8 +16,9 @@ nexus_FILES := src/main.mm \
 
 nexus_CFLAGS  := -fobjc-arc -fno-modules \
                  -Wno-deprecated-declarations \
-                 -Wno-unused-variable \
-                 -std=c++17
+                 -Wno-unused-variable
+
+nexus_CXXFLAGS := -std=c++17
 
 nexus_FRAMEWORKS := UIKit Foundation
 nexus_LIBRARIES  := z
