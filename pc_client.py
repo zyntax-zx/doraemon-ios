@@ -66,12 +66,13 @@ class NexusClient:
         else:
             print("[-] PING falló.")
 
-    def scan_snapshot(self):
-        print("[*] Solicitando Snapshot de memoria (Fase 1)...")
-        self._send_cmd(CMD_SCAN_SNAPSHOT)
-        cmd, payload = self._recv_resp()
-        if cmd == CMD_SCAN_SNAPSHOT and len(payload) == 4:
-            count = struct.unpack('<I', payload)[0]
+    def scan_snapshot(self, min_val=1, max_val=200):
+        print(f"[*] Solicitando Snapshot de memoria para valores entre {min_val} y {max_val} (Fase 1)...")
+        payload = struct.pack('<II', min_val, max_val)
+        self._send_cmd(CMD_SCAN_SNAPSHOT, payload)
+        cmd, resp_payload = self._recv_resp()
+        if cmd == CMD_SCAN_SNAPSHOT and len(resp_payload) == 4:
+            count = struct.unpack('<I', resp_payload)[0]
             print(f"[+] Snapshot tomado exitosamente: {count} candidatos encontrados.")
         else:
             print("[-] Error tomando snapshot.")
@@ -145,8 +146,17 @@ def interactive_shell(client):
                 print("  exit       - Salir")
             elif cmd == 'ping':
                 client.ping()
-            elif cmd == 'snap':
-                client.scan_snapshot()
+            elif cmd.startswith('snap'):
+                parts = cmd.split(' ')
+                if len(parts) == 1:
+                    client.scan_snapshot()
+                elif len(parts) == 2:
+                    val = int(parts[1])
+                    client.scan_snapshot(val, val)
+                elif len(parts) == 3:
+                    client.scan_snapshot(int(parts[1]), int(parts[2]))
+                else:
+                    print("Uso: snap O snap <valor> O snap <min> <max>")
             elif cmd.startswith('diff '):
                 try:
                     val = int(cmd.split(' ')[1])

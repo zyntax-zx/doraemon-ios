@@ -77,9 +77,15 @@ static void handle_client(int fd) {
                 break;
             }
             case CMD_SCAN_SNAPSHOT: {
+                int init_min = 1;
+                int init_max = 200;
+                if (hdr.len >= 8) {
+                    init_min = *(int*)(payload);
+                    init_max = *(int*)(payload + 4);
+                }
                 extern size_t mem_scan_snapshot(int, int);
-                size_t count = mem_scan_snapshot(1, 200);
-                nexus_log("SERVER", "SNAPSHOT: %zu entradas", count);
+                size_t count = mem_scan_snapshot(init_min, init_max);
+                nexus_log("SERVER", "SNAPSHOT [%d-%d]: %zu entradas", init_min, init_max, count);
                 TLVHeader resp = { CMD_SCAN_SNAPSHOT, 4 };
                 uint32_t c32 = (uint32_t)count;
                 send(fd, &resp, sizeof(resp), 0);
