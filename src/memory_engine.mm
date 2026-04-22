@@ -90,7 +90,7 @@ std::vector<uintptr_t> mem_scan_diff(int new_min, int new_max) {
     return results;
 }
 
-// AOB Scanner seguro con protecciones anti-crash
+// AOB Scanner seguro v3 — anti-crash + anti-watchdog
 std::vector<uintptr_t> mem_aob_scan(const char *pattern) {
     std::vector<int> pat;
     const char *p = pattern;
@@ -103,47 +103,52 @@ std::vector<uintptr_t> mem_aob_scan(const char *pattern) {
     std::vector<uintptr_t> results;
     if (pat.empty()) return results;
 
-    // Límites de seguridad
-    const size_t MAX_RESULTS       = 500;     // No acumular más de 500 resultados
-    const vm_size_t MAX_REGION_SIZE = (vm_size_t)2ULL * 1024 * 1024 * 1024; // Skip regiones > 2GB (GPU/framebuffer)
-    const uintptr_t MAX_SCAN_ADDR  = 0x700000000000ULL;  // No escanear cerca del kernel
+    const size_t MAX_RESULTS        = 500;
+    const vm_size_t MAX_REGION_SIZE = (vm_size_t)512ULL * 1024 * 1024; // Skip regiones > 512MB
+    const uintptr_t MAX_SCAN_ADDR   = 0x400000000ULL;  // Solo escanear hasta ~16GB (cubre binario + heap)
+    const size_t BLOCK_SIZE         = 256 * 1024;       // 256KB por bloque (más seguro que 1MB)
 
-    vm_address_t addr = 0;
+    vm_address_t addr = 0x100000000ULL; // Empezar desde donde cargan los binarios en iOS
     vm_size_t size = 0;
+    uint32_t regions_scanned = 0;
+
     while (results.size() < MAX_RESULTS) {
         vm_region_basic_info_data_64_t info;
         mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
         mach_port_t obj = MACH_PORT_NULL;
         kern_return_t kr = vm_region_64(mach_task_self(), &addr, &size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &count, &obj);
         if (kr != KERN_SUCCESS) break;
+        if (addr > MAX_SCAN_ADDR) break;
+        if (size > MAX_REGION_SIZE || !(info.protection & VM_PROT_READ)) { addr += size; continue; }
 
-        // Protecciones de seguridad
-        if (addr > MAX_SCAN_ADDR) break;             // Fuera de rango seguro
-        if (size > MAX_REGION_SIZE) { addr += size; continue; } // Región sospechosamente grande
-        if (!(info.protection & VM_PROT_READ)) { addr += size; continue; } // No legible
+        // Ceder CPU cada 50 regiones para no disparar el watchdog de iOS
+        if (++regions_scanned % 50 == 0) usleep(5000); // 5ms
 
-        const size_t BLOCK_SIZE = 1024 * 1024;
         uint8_t *buf = (uint8_t*)malloc(BLOCK_SIZE);
-        if (buf) {
-            for (vm_address_t block = addr; block < addr + size && results.size() < MAX_RESULTS; block += BLOCK_SIZE - pat.size()) {
-                vm_size_t to_read = MIN((vm_size_t)BLOCK_SIZE, (addr + size) - block);
-                vm_size_t actual = 0;
-                if (vm_read_overwrite(mach_task_self(), block, to_read, (vm_address_t)buf, &actual) == KERN_SUCCESS && actual >= pat.size()) {
-                    for (size_t i = 0; i <= actual - pat.size() && results.size() < MAX_RESULTS; i++) {
-                        bool match = true;
-                        for (size_t j = 0; j < pat.size(); j++) {
-                            if (pat[j] != -1 && buf[i+j] != pat[j]) {
-                                match = false; break;
-                            }
-                        }
-                        if (match) results.push_back(block + i);
+        if (!buf) { addr += size; continue; }
+
+        bool region_ok = true;
+        for (vm_address_t block = addr; block < addr + size && results.size() < MAX_RESULTS && region_ok; block += BLOCK_SIZE - pat.size()) {
+            vm_size_t to_read = MIN((vm_size_t)BLOCK_SIZE, (addr + size) - block);
+            vm_size_t actual = 0;
+            kr = vm_read_overwrite(mach_task_self(), block, to_read, (vm_address_t)buf, &actual);
+            if (kr != KERN_SUCCESS || actual < pat.size()) {
+                region_ok = false; // Si falla un bloque, saltar toda la región
+                break;
+            }
+            for (size_t i = 0; i <= actual - pat.size() && results.size() < MAX_RESULTS; i++) {
+                bool match = true;
+                for (size_t j = 0; j < pat.size(); j++) {
+                    if (pat[j] != -1 && buf[i+j] != pat[j]) {
+                        match = false; break;
                     }
                 }
+                if (match) results.push_back(block + i);
             }
-            free(buf);
         }
+        free(buf);
         addr += size;
     }
-    nexus_log("MEM", "AOB Scan completado. %zu coincidencias (cap=%zu).", results.size(), MAX_RESULTS);
+    nexus_log("MEM", "AOB Scan: %zu coincidencias, %u regiones escaneadas.", results.size(), regions_scanned);
     return results;
 }
