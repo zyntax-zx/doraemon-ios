@@ -10,7 +10,7 @@ struct rebinding {
 };
 
 int rebind_symbols(struct rebinding rebindings[], size_t rebindings_nel);
-int rebind_symbols_image(struct mach_header *header,
+int rebind_symbols_image(void *header,
                          intptr_t slide,
                          struct rebinding rebindings[],
                          size_t rebindings_nel);
