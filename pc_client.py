@@ -208,6 +208,7 @@ def interactive_shell(client):
                 print("  ping       - Verificar conexión")
                 print("  mod [name] - Listar módulos (ej: mod, mod wuthering)")
                 print("  readptr <addr> - Leer un puntero de 64 bits (ej: readptr 0x10038c000)")
+                print("  scanptr <addr> - Buscar qué parte de la RAM apunta a esta dirección")
                 print("  aob <pattern> - Buscar AOB (ej: aob 48 8B 05 ? ? ? ? 48 85 C0)")
                 print("  snap <val> - Tomar snapshot (ej: snap 1090)")
                 print("  diff <val> - Filtrar snapshot (ej: diff 875)")
@@ -229,6 +230,16 @@ def interactive_shell(client):
                     print(f"[+] Puntero en 0x{addr:016x} -> 0x{val:016x}")
                 except Exception as e:
                     print("Uso: readptr <hex_addr> (Error:", e, ")")
+            elif cmd.startswith('scanptr '):
+                try:
+                    addr = int(cmd.split(' ')[1], 16)
+                    # Convertir la dirección a little-endian (8 bytes) y formatearla como AOB
+                    packed = struct.pack('<Q', addr)
+                    aob_pattern = ' '.join([f"{b:02X}" for b in packed])
+                    print(f"[*] Escaneando referencias a 0x{addr:016x} (Patrón: {aob_pattern})")
+                    client.aob_scan(aob_pattern)
+                except Exception as e:
+                    print("Uso: scanptr <hex_addr> (Error:", e, ")")
             elif cmd.startswith('aob '):
                 pattern = cmd[4:].strip().upper()
                 client.aob_scan(pattern)
